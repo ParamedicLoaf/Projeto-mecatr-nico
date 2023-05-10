@@ -221,6 +221,8 @@ void loop(){
                 while(1){
                     if(confirma){
                         estado_ref();
+                        delay(1000);
+                        inicio_tela();
                         break;
                     }
                 }
