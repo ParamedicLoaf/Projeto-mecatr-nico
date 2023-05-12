@@ -24,6 +24,7 @@ int cursor=1;
 int cursor_pos=0;
 
 bool flag_emergencia = 1;
+bool PIP = 0;
 
 Timer display;
 Timer debounce;
@@ -51,6 +52,8 @@ pos posicao_9;
 pega pos_pega;
 
 pos posicoes[9] = {posicao_1,posicao_2,posicao_3,posicao_4,posicao_5,posicao_6,posicao_7,posicao_8,posicao_9};
+
+int volume;
 
 // Configuração do Display
 const PinName XP = D8, YP = A3, XM = A2, YM = D9; 
@@ -87,10 +90,19 @@ void print_posicao(){
 
     tft.fillScreen(BLACK);
     tft.setCursor(0, 0); // Orientação X,Y
-    tft.print(posicoes[2].y);
+    tft.print(pos_y);
     tft.println(" passos");
     tft.print(pos_y*3/200);
     tft.print(" mm");
+}
+
+void pega_volume_tela(){
+
+    tft.fillScreen(BLACK);
+    tft.setCursor(0, 0); // Orientação X,Y
+    tft.printf("%d passos",pos_y*3/200);
+    tft.setCursor(0, 30);
+    tft.printf("%d ml",volume);
 }
 
 void inicio_tela(){
@@ -103,6 +115,7 @@ void inicio_tela(){
     if(REF==0){tft.setTextColor(RED);}
     tft.print("Pegar posicao");
     tft.setCursor(10, 90);
+    if(PIP==0){tft.setTextColor(RED);}
     tft.print("Pipetar");
 
     switch (cursor){
@@ -145,63 +158,24 @@ void lista_pos_tela(){
     if(pos_pega.y>0){tft.setTextColor(CYAN);}
     tft.println("Posicao pega");
     tft.setTextColor(RED);
-    tft.setCursor(10, 30);
-    tft.println("Posicao 1");
-    tft.setCursor(10, 50);
-    tft.println("Posicao 2");
-    tft.setCursor(10, 70);
-    if(posicoes[2].y>0){tft.setTextColor(CYAN);}
-    tft.println("Posicao 3");
-    tft.setTextColor(RED);
-    tft.setCursor(10, 90);
-    tft.println("Posicao 4");
-    tft.setCursor(10, 110);
-    tft.println("Posicao 5");
-    tft.setCursor(10, 130);
-    tft.println("Posicao 6");
-    tft.setCursor(10, 150);
-    tft.println("Posicao 7");
-    tft.setCursor(10, 170);
-    tft.println("Posicao 8");
-    tft.setCursor(10, 190);
-    tft.println("Posicao 9");
+    
+    
+    for (int i=1;i<10;i++){
+        
+        if(posicoes[i-1].vol>0){
+            tft.setTextColor(CYAN);
+            tft.setCursor(150, 10+i*20);
+            tft.printf("%d ml", posicoes[i-1].vol);
+        }
+        tft.setCursor(10, 10+i*20);
+        tft.printf("Posicao %d:",i);
+        tft.setTextColor(RED);
+    }
+    
     tft.setTextSize(3);
     tft.setTextColor(CYAN);
-    tft.drawRoundRect(5,5+20*cursor_pos,160,24,1,WHITE);
+    tft.drawRoundRect(5,5+20*cursor_pos,210,24,1,WHITE);
 
-    /*
-    switch (cursor_pos){
-        case 0:
-            tft.drawRoundRect(5,5,160,20,1,WHITE);
-            break;
-        case 1:
-            tft.drawRoundRect(5,5+20*cursor_pos,160,24,1,WHITE);
-            break;
-        case 2:
-            tft.drawRoundRect(5,5+20*cursor_pos,160,25,1,WHITE);
-            break;
-        case 3:
-            tft.drawRoundRect(5,5+20*cursor_pos,160,25,1,WHITE);
-            break;
-        case 4:
-            tft.drawRoundRect(5,5+20*cursor_pos,160,25,1,WHITE);
-            break;
-        case 5:
-            tft.drawRoundRect(5,5+20*cursor_pos,160,24,1,WHITE);
-            break;
-        case 6:
-            tft.drawRoundRect(5,5+20*cursor_pos,160,25,1,WHITE);
-            break;
-        case 7:
-            tft.drawRoundRect(5,5+20*cursor_pos,160,25,1,WHITE);
-            break;
-        case 8:
-            tft.drawRoundRect(5,5+20*cursor_pos,160,25,1,WHITE);
-            break;
-        case 9:
-            tft.drawRoundRect(5,5+20*cursor_pos,160,25,1,WHITE);
-            break;
-    }*/
 }
 
 //****************************************************************************//
@@ -335,11 +309,43 @@ void loop(){
                                         break;
                                     default:
                                         posicoes[cursor_pos-1].y=pos_y;
+
+                                        pega_volume_tela();
+                                        while(flag_emergencia){
+
+                                            joy_y = EixoYJoyStick.read() * 1000;
+                                            
+                                            if (joy_y>600){
+                        
+                                                volume++;
+                                                pega_volume_tela();
+                                                delay(300);
+
+                                            } else if (joy_y<400){
+
+                                                volume--;
+                                                if(volume<0){
+                                                    volume=0;
+                                                }
+                                                pega_volume_tela();
+                                                delay(300);
+
+                                            }
+
+                                            if (confirma){
+                                                delay(300);
+                                                posicoes[cursor_pos-1].vol=volume;
+                                                if(pos_pega.y>0){PIP = 1;}
+                                                break;
+                                            }
+                                        }
+                                        
                                         break;
                                     
 
                                 }
                             lista_pos_tela();
+                            if(flag_emergencia==0){inicio_tela();}
                             break;
                             }
                         }
@@ -347,6 +353,8 @@ void loop(){
                     }
                 }
                 break;
+
+//________PIPETAGEM________________________________________________________________________________
         }
     }
 
