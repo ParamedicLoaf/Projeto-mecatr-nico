@@ -5,7 +5,8 @@
 void referencia();
 void estado_ref();
 void desastre();
-
+void pipetagem();
+void seleciona_posicao();
 
 
 #endif

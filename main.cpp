@@ -11,20 +11,23 @@ MCUFRIEND_kbv tft;
 
 // Configuração Motor Y
 DigitalIn confirma(PB_2);
+DigitalOut pipeta(PC_11);
 AnalogIn EixoYJoyStick(PC_3);
 InterruptIn emergencia(PB_11);
 InterruptIn fdc2_y_(PB_1);
 
 // variaveis auxiliares
 bool REF = 0;
+bool flag_emergencia = 1;
+bool PIP = 0;
+bool pipeta_cheia = 0;
+
 int joy_y;
 int pos_y;
 
 int cursor=1;
 int cursor_pos=0;
 
-bool flag_emergencia = 1;
-bool PIP = 0;
 
 Timer display;
 Timer debounce;
@@ -86,6 +89,27 @@ uint8_t Orientation = 1;
 //Serial pc(USBTX, USBRX);
 
 //***********************Escrita no  Display**********************************//
+
+void limpa_tela(){
+    tft.fillScreen(BLACK);
+}
+
+void pipetando_tela(pos posicao, int i){
+    tft.setCursor(10, 0); // Orientação X,Y
+    tft.printf("Posicao %d",i);
+    tft.setCursor(10, 30);
+    tft.fillRect(50,30,250,30,BLACK);
+    tft.printf("Faltam %d ml",posicao.vol);
+}
+
+void pipetagem_concluida_tela(){
+    tft.fillScreen(BLACK);
+    tft.setCursor(50, 200); // Orientação X,Y
+    tft.setTextSize(2);
+    tft.printf("PIPETAGEM CONCLUIDA");
+    tft.setTextSize(3);
+}
+
 void print_posicao(){
 
     tft.fillScreen(BLACK);
@@ -100,7 +124,7 @@ void pega_volume_tela(){
 
     tft.fillScreen(BLACK);
     tft.setCursor(0, 0); // Orientação X,Y
-    tft.printf("%d passos",pos_y*3/200);
+    tft.printf("y = %d mm",pos_y*3/200);
     tft.setCursor(0, 30);
     tft.printf("%d ml",volume);
 }
@@ -194,6 +218,8 @@ void setup(void)
     tft.setTextSize(3);
     delay(1000);
 
+    pipeta = 1;
+
     //inicia o debouncing
     debounce.start();
 
@@ -248,113 +274,18 @@ void loop(){
 
 //______________JOG_________________________________________________________________________________
             case 2:
-                lista_pos_tela();
-                delay(300);
-
-                while(flag_emergencia){
-
-                    joy_y = EixoYJoyStick.read() * 1000;
-
-                    if (joy_y<400){
-                        cursor_pos++;
-                        if (cursor_pos>9){
-                            cursor_pos = 0;
-                            }
-                        lista_pos_tela();
-
-                        delay(300);
-
-                    } else if (joy_y>600){
-                        cursor_pos--;
-                        if(cursor_pos<0){
-                            cursor_pos=9;
-                        }
-
-                        lista_pos_tela();
-                        delay(300);
-
-                    }
-
-                    if (confirma){
-                        delay(300);
-                        //JOG
-                        while (REF == 1){
-
-                            joy_y = EixoYJoyStick.read() * 1000;
-
-                            // a cada 2 segundos, printa a posição no display:
-                            if (display.read_ms()>2000){ 
-                                print_posicao();
-                                display.reset();
-                            }
-
-                            // gira o motor de acordo com a leitura do Joystick
-                            if (joy_y>600){
-                        
-                                pos_y = pos_y + gira_y_mais();
-
-                            } else if (joy_y<400){
-
-                                pos_y = pos_y + gira_y_menos();
-
-                            } else {
-                                stop_y();
-                            }
-
-                            if(confirma){
-                                delay(300);
-                                switch(cursor_pos){
-                                    case 0:
-                                        pos_pega.y = pos_y;
-                                        break;
-                                    default:
-                                        posicoes[cursor_pos-1].y=pos_y;
-
-                                        pega_volume_tela();
-                                        while(flag_emergencia){
-
-                                            joy_y = EixoYJoyStick.read() * 1000;
-                                            
-                                            if (joy_y>600){
-                        
-                                                volume++;
-                                                pega_volume_tela();
-                                                delay(300);
-
-                                            } else if (joy_y<400){
-
-                                                volume--;
-                                                if(volume<0){
-                                                    volume=0;
-                                                }
-                                                pega_volume_tela();
-                                                delay(300);
-
-                                            }
-
-                                            if (confirma){
-                                                delay(300);
-                                                posicoes[cursor_pos-1].vol=volume;
-                                                if(pos_pega.y>0){PIP = 1;}
-                                                break;
-                                            }
-                                        }
-                                        
-                                        break;
-                                    
-
-                                }
-                            lista_pos_tela();
-                            if(flag_emergencia==0){inicio_tela();}
-                            break;
-                            }
-                        }
-                    
-                    }
+                if(REF){
+                    seleciona_posicao();
                 }
+                
                 break;
 
 //________PIPETAGEM________________________________________________________________________________
+            case 3:
+                if(PIP && REF){
+                    pipetagem();
+                }
+                break;
         }
     }
 
@@ -405,5 +336,192 @@ void referencia(){
 
     }
     stop_y();
+    
+}
+
+void seleciona_posicao(){
+    lista_pos_tela();
+    delay(300);
+
+    while(flag_emergencia){
+
+        joy_y = EixoYJoyStick.read() * 1000;
+
+        if (joy_y<400){
+            cursor_pos++;
+            if (cursor_pos>9){
+                cursor_pos = 0;
+                }
+            lista_pos_tela();
+
+            delay(300);
+
+        } else if (joy_y>600){
+            cursor_pos--;
+            if(cursor_pos<0){
+                cursor_pos=9;
+            }
+
+            lista_pos_tela();
+            delay(300);
+
+        }
+
+        if (confirma){
+            delay(300);
+            //JOG
+            while (REF == 1){
+
+                joy_y = EixoYJoyStick.read() * 1000;
+
+                // a cada 2 segundos, printa a posição no display:
+                if (display.read_ms()>2000){ 
+                    print_posicao();
+                    display.reset();
+                }
+
+                // gira o motor de acordo com a leitura do Joystick
+                if (joy_y>600){
+            
+                    pos_y = pos_y + gira_y_mais();
+
+                } else if (joy_y<400){
+
+                    pos_y = pos_y + gira_y_menos();
+
+                } else {
+                    stop_y();
+                }
+
+                if(confirma){
+                    delay(300);
+                    switch(cursor_pos){
+                        case 0:
+                            pos_pega.y = pos_y;
+                            break;
+                        default:
+                            posicoes[cursor_pos-1].y=pos_y;
+
+                            pega_volume_tela();
+                            while(flag_emergencia){
+
+                                joy_y = EixoYJoyStick.read() * 1000;
+                                
+                                if (joy_y>600){
+            
+                                    volume++;
+                                    pega_volume_tela();
+                                    delay(300);
+
+                                } else if (joy_y<400){
+
+                                    volume--;
+                                    if(volume<0){
+                                        volume=0;
+                                    }
+                                    pega_volume_tela();
+                                    delay(300);
+
+                                }
+
+                                if (confirma){
+                                    delay(300);
+                                    posicoes[cursor_pos-1].vol=volume;
+                                    if(pos_pega.y>0){PIP = 1;}
+                                    break;
+                                }
+                            }
+                            
+                            break;
+                        
+
+                    }
+                lista_pos_tela();
+                if(flag_emergencia==0){inicio_tela();}
+                break;
+                }
+            }
+        
+        }
+    }
+}
+
+void pipetagem(){
+
+    limpa_tela();
+    //pipetando_tela(posicoes[0],1);
+
+    for (int i=0;i<9;i++){
+
+        limpa_tela();
+
+        pipetando_tela(posicoes[i],i+1);
+
+        while(posicoes[i].vol>0 && flag_emergencia){
+            if (pipeta_cheia==0){
+
+                while(REF && flag_emergencia){
+
+                    if(pos_y<pos_pega.y){
+                        pos_y = pos_y +gira_y_mais();
+                    } else if(pos_y>pos_pega.y) {
+                        pos_y = pos_y +gira_y_menos();
+                    } else {
+                        pipeta = 0;
+                        delay(300);
+                        pipeta = 1;
+                        pipeta_cheia = 1;
+                        wait(1.6);
+                        break;
+                    }
+                    
+                    if(emergencia==0){
+                        break;
+                    }
+
+                }
+            } else {
+
+                while(REF && flag_emergencia){
+
+                    if(pos_y<posicoes[i].y){
+                        pos_y = pos_y +gira_y_mais();
+                    } else if(pos_y>posicoes[i].y) {
+                        pos_y = pos_y +gira_y_menos();
+                    } 
+                    
+                    if (pos_y==posicoes[i].y) {
+                        pipeta = 0;
+                        delay(300);
+                        pipeta = 1;
+                        pipeta_cheia = 0;
+                        posicoes[i].vol = posicoes[i].vol--;
+                        pipetando_tela(posicoes[i],i+1);
+                        wait(2.3);
+                        break;
+                    }
+                    
+                    if(emergencia==0){
+                        break;
+                    }
+
+                }
+            }
+        }
+    }
+
+    PIP = 0;
+    for (int i=0;i<9;i++){
+        if(posicoes[i].vol>0){
+            PIP=1;
+        }
+    }
+    
+    if(PIP==0){
+        pipetagem_concluida_tela();
+        wait(3);
+    }
+
+    inicio_tela();
     
 }
