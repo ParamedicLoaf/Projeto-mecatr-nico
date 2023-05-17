@@ -10,10 +10,17 @@ DigitalOut direcao_y(PB_14);
 InterruptIn fdc1_y(PB_15);
 InterruptIn fdc2_y(PB_1);
 
-//controlador de velocidade y
-int tempo_y = 500;
+//Motor x
+DigitalOut clk_x(PB_13);
+DigitalOut direcao_x(PB_14);
+InterruptIn fdc1_x(PB_15);
+InterruptIn fdc2_x(PB_1);
 
-//acionamentos do motor y
+//controlador de velocidade
+int tempo_y = 700;
+int tempo_x = 700;
+
+//acionamentos do motor y___________________________________________________________________
 int gira_y_mais(){
 
     if (fdc1_y == 0){ //só roda se o fim de curso não estiver acionado
@@ -56,4 +63,44 @@ void stop_y(){
 
 
 
+//acionamentos do motor x_______________________________________________________________________
 
+int gira_x_mais(){
+
+    if (fdc1_x == 0){ //só roda se o fim de curso não estiver acionado
+        
+        direcao_x = 1;
+        clk_x =1;
+        wait_us(tempo_x);
+        clk_x = 0;
+        wait_us(tempo_x);
+        
+        return 1;
+    
+    } else {
+        return 0;
+    }
+    
+}
+
+int gira_x_menos(){
+
+    if (fdc2_x == 0){ //só roda se o fim de curso não estiver acionado
+
+        direcao_x = 0;
+        clk_x =1;
+        wait_us(tempo_x);
+        clk_x = 0;
+        wait_us(tempo_x);
+        
+        return -1;
+
+    } else {
+        return 0;
+    }
+
+}
+
+void stop_x(){
+    clk_x = 0;
+}
