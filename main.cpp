@@ -10,11 +10,11 @@ MCUFRIEND_kbv tft;
 #include "main.h"
 
 //IHM
-DigitalIn confirma(PB_2);
+DigitalIn confirma(PC_6);
 DigitalIn voltar(PA_12);
 AnalogIn EixoYJoyStick(PC_3);
 AnalogIn EixoXJoyStick(PC_2);
-InterruptIn emergencia(PB_11);
+InterruptIn emergencia(PC_5);
 
 // pipeta
 DigitalOut pipeta(PC_11);
@@ -23,7 +23,7 @@ DigitalOut pipeta(PC_11);
 InterruptIn fdc2_y_(PB_1);
 
 //Motor X
-InterruptIn fdc2_x_(PB_1);
+InterruptIn fdc2_x_(PB_11);
 
 // variaveis auxiliares
 bool REF = 0;
@@ -250,6 +250,7 @@ void loop(){
     flag_emergencia = 1;
 
     joy_y = EixoYJoyStick.read() * 1000;
+    joy_x = EixoXJoyStick.read() * 1000;
 
     if (joy_y<400){
         cursor++;
@@ -411,40 +412,27 @@ void seleciona_posicao(){
 
                 // gira o motor Y de acordo com a leitura do Joystick
                 if (joy_y>600){
-            
                     pos_y = pos_y + gira_y_menos();
-
                 } else if (joy_y<400){
-
                     pos_y = pos_y + gira_y_mais();
-
                 } else {
                     stop_y();
-                    // a cada 2 segundos, printa a posição no display:
-                    if (display.read_ms()>2000){ 
-                        print_posicao();
-                        display.reset();
-                    }
-                    
                 }
-                /*else {
-                    stop_y();
+
+
+                if((joy_y<600 && joy_y>400)&&(joy_x<600 && joy_x>400)){ //se estiver parado
                     // a cada 2 segundos, printa a posição no display:
                     if (display.read_ms()>2000){ 
                         print_posicao();
                         display.reset();
                     }
-                }*/
+                }
 
                 // gira o motor X de acordo com a leitura do Joystick
                 if (joy_x>600){
-            
-                    pos_x = pos_x + gira_x_menos();
-
-                } else if (joy_x<400){
-
                     pos_x = pos_x + gira_x_mais();
-
+                } else if (joy_x<400){
+                    pos_x = pos_x + gira_x_menos();
                 } else {
                     stop_x();
                 }
