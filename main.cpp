@@ -39,9 +39,18 @@ int pos_x;
 int cursor=1;
 int cursor_pos=0;
 
+bool Y_MAIS=0;
+bool Y_MENOS=0;
+bool X_MAIS=0;
+bool X_MENOS=0;
 
 Timer display;
 Timer debounce;
+Ticker vel_x;
+Ticker vel_y;
+
+float tempo_x= 1400;
+float tempo_y= 1400;
 
 struct pos {
   int y;
@@ -217,6 +226,25 @@ void lista_pos_tela(){
 
 //****************************************************************************//
 
+void mov_y(){
+    if (Y_MENOS){
+        pos_y = pos_y + gira_y_menos();
+    } else if (Y_MAIS){
+        pos_y = pos_y + gira_y_mais();
+    } else {
+        stop_y();
+    }
+}
+
+void mov_x(){
+    if (X_MENOS){
+        pos_x = pos_x + gira_x_menos();
+    } else if (X_MAIS){
+        pos_x = pos_x + gira_x_mais();
+    } else {
+        stop_x();
+    }
+}
 
 // PROGRAMA PRINCIPAL ____________________________________________________________
 
@@ -240,6 +268,9 @@ void setup(void)
     //interrupções
     emergencia.fall(&desastre);
 
+    vel_x.attach_us(mov_x,tempo_x);
+    vel_y.attach_us(mov_y,tempo_y);
+
     
     inicio_tela();
     
@@ -248,6 +279,11 @@ void setup(void)
 void loop(){
 
     flag_emergencia = 1;
+
+    X_MENOS=0;
+    X_MAIS=0;
+    Y_MENOS=0;
+    Y_MAIS=0;
 
     joy_y = EixoYJoyStick.read() * 1000;
     joy_x = EixoXJoyStick.read() * 1000;
@@ -317,8 +353,11 @@ void loop(){
 
 void desastre(){
     
-        stop_y(); //para o motor
-        stop_x();
+        X_MENOS=0;
+        X_MAIS=0;
+        Y_MENOS=0;
+        Y_MAIS=0;
+
         REF = 0; //
         flag_emergencia = 0;
         emergencia_tela();
@@ -350,15 +389,16 @@ void referencia(){
 
     while((fdc2_y_==0||fdc2_x_==0) && flag_emergencia==1){ //roda até bater no fim de curso 2
         
-        gira_y_menos();
-        gira_x_menos();
+        Y_MENOS=1;
+        X_MENOS=1;
 
         if(emergencia==0){
             break;
         }
 
     }
-    stop_y();
+    Y_MENOS = 0;
+    X_MENOS = 0;
     
 }
 
@@ -412,11 +452,17 @@ void seleciona_posicao(){
 
                 // gira o motor Y de acordo com a leitura do Joystick
                 if (joy_y>600){
-                    pos_y = pos_y + gira_y_menos();
+                    Y_MAIS=0;
+                    Y_MENOS=1;
+                    //pos_y = pos_y + gira_y_menos();
                 } else if (joy_y<400){
-                    pos_y = pos_y + gira_y_mais();
+                    Y_MAIS=1;
+                    Y_MENOS=0;
+                    //pos_y = pos_y + gira_y_mais();
                 } else {
-                    stop_y();
+                    Y_MAIS=0;
+                    Y_MENOS=0;
+                    //stop_y();
                 }
 
 
@@ -430,11 +476,17 @@ void seleciona_posicao(){
 
                 // gira o motor X de acordo com a leitura do Joystick
                 if (joy_x>600){
-                    pos_x = pos_x + gira_x_mais();
+                    X_MAIS=1;
+                    X_MENOS=0;
+                    //pos_x = pos_x + gira_x_mais();
                 } else if (joy_x<400){
-                    pos_x = pos_x + gira_x_menos();
+                    X_MAIS=0;
+                    X_MENOS=1;
+                    //pos_x = pos_x + gira_x_menos();
                 } else {
-                    stop_x();
+                    X_MAIS=0;
+                    X_MENOS=0;
+                    //stop_x();
                 }
 
                 if(!confirma){ //confirmar posições
@@ -513,16 +565,30 @@ void pipetagem(){
 
                     // Movimenta y até a posição de pega
                     if(pos_y<pos_pega.y){
-                        pos_y = pos_y +gira_y_mais();
+                        Y_MAIS=1;
+                        Y_MENOS=0;
+                        //pos_y = pos_y +gira_y_mais();
                     } else if(pos_y>pos_pega.y) {
-                        pos_y = pos_y +gira_y_menos();
+                        Y_MAIS=0;
+                        Y_MENOS=1;
+                        //pos_y = pos_y +gira_y_menos();
+                    } else {
+                        Y_MAIS=0;
+                        Y_MENOS=0;
                     }
-                    
+
                     // Movimenta x até a posição de pega
                     if(pos_x<pos_pega.x){
-                        pos_x = pos_x +gira_x_mais();
+                        X_MAIS=1;
+                        X_MENOS=0;
+                        //pos_x = pos_x +gira_x_mais();
                     } else if(pos_x>pos_pega.x) {
-                        pos_x = pos_x +gira_x_menos();
+                        X_MAIS=0;
+                        X_MENOS=1;
+                        //pos_x = pos_x +gira_x_menos();
+                    } else {
+                        X_MAIS=0;
+                        X_MENOS=0;
                     }
 
                     if(pos_x==pos_pega.x && pos_y==pos_pega.y){
@@ -545,18 +611,32 @@ void pipetagem(){
 
                     // Movimenta y até a posição salva
                     if(pos_y<posicoes[i].y){
-                        pos_y = pos_y +gira_y_mais();
+                        Y_MAIS=1;
+                        Y_MENOS=0;
+                        //pos_y = pos_y +gira_y_mais();
                     } else if(pos_y>posicoes[i].y) {
-                        pos_y = pos_y +gira_y_menos();
-                    } 
+                        Y_MAIS=0;
+                        Y_MENOS=1;
+                        //pos_y = pos_y +gira_y_menos();
+                    } else {
+                        Y_MAIS=0;
+                        Y_MENOS=0;
+                    }
 
                     // Movimenta x até a posição salva
                     if(pos_x<posicoes[i].x){
-                        pos_x = pos_x +gira_x_mais();
+                        X_MAIS=1;
+                        X_MENOS=0;
+                        //pos_x = pos_x +gira_x_mais();
                     } else if(pos_x>posicoes[i].x) {
-                        pos_x = pos_x +gira_x_menos();
-                    } 
-                    
+                        X_MAIS=0;
+                        X_MENOS=1;
+                        //pos_x = pos_x +gira_x_menos();
+                    } else {
+                        X_MAIS=0;
+                        X_MENOS=0;
+                    }
+
                     if (pos_y==posicoes[i].y && pos_x==posicoes[i].x) {
                         pipeta = 0;
                         delay(300);

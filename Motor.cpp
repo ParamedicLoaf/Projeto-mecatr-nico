@@ -17,8 +17,8 @@ InterruptIn fdc1_x(PB_12);
 InterruptIn fdc2_x(PB_11);
 
 //controlador de velocidade
-int tempo_y = 700;
-int tempo_x = 500;
+//int tempo_y = 700;
+//int tempo_x = 500;
 
 
 //acionamentos do motor y___________________________________________________________________
@@ -28,9 +28,9 @@ int gira_y_mais(){
         
         direcao_y = 1;
         clk_y =1;
-        wait_us(tempo_y);
+        //wait_us(tempo_y);
         clk_y = 0;
-        wait_us(tempo_y);
+        //wait_us(tempo_y);
         
         return 1;
     
@@ -46,9 +46,9 @@ int gira_y_menos(){
 
         direcao_y = 0;
         clk_y =1;
-        wait_us(tempo_y);
+        //wait_us(tempo_y);
         clk_y = 0;
-        wait_us(tempo_y);
+        //wait_us(tempo_y);
         
         return -1;
 
@@ -72,9 +72,9 @@ int gira_x_mais(){
         
         direcao_x = 0;
         clk_x =1;
-        wait_us(tempo_x);
+        //wait_us(tempo_x);
         clk_x = 0;
-        wait_us(tempo_x);
+        //wait_us(tempo_x);
         
         return 1;
     
@@ -90,9 +90,9 @@ int gira_x_menos(){
 
         direcao_x = 1;
         clk_x =1;
-        wait_us(tempo_x);
+        //wait_us(tempo_x);
         clk_x = 0;
-        wait_us(tempo_x);
+        //wait_us(tempo_x);
         
         return -1;
 
