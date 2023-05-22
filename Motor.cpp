@@ -5,20 +5,17 @@
 
 
 //Motor y
-DigitalOut clk_y(PB_13);
-DigitalOut direcao_y(PB_14);
+DigitalOut clk_y(PC_12);
+DigitalOut direcao_y(PA_13);
 InterruptIn fdc1_y(PB_15);
 InterruptIn fdc2_y(PB_1);
 
 //Motor x 
-DigitalOut clk_x(PC_12);
-DigitalOut direcao_x(PC_10);
+DigitalOut clk_x(PA_14);
+DigitalOut direcao_x(PA_15);
 InterruptIn fdc1_x(PB_12);
 InterruptIn fdc2_x(PB_11);
 
-//controlador de velocidade
-//int tempo_y = 700;
-//int tempo_x = 500;
 
 
 //acionamentos do motor y___________________________________________________________________

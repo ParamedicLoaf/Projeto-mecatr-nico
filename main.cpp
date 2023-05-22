@@ -11,13 +11,14 @@ MCUFRIEND_kbv tft;
 
 //IHM
 DigitalIn confirma(PC_6);
-DigitalIn voltar(PA_12);
+//DigitalIn voltar(PB_13);
+DigitalIn voltar(PB_7);
 AnalogIn EixoYJoyStick(PC_3);
 AnalogIn EixoXJoyStick(PC_2);
 InterruptIn emergencia(PC_5);
 
 // pipeta
-DigitalOut pipeta(PC_11);
+DigitalOut pipeta(PD_2);
 
 //Motor Y
 InterruptIn fdc2_y_(PB_1);
@@ -49,7 +50,7 @@ Timer debounce;
 Ticker vel_x;
 Ticker vel_y;
 
-float tempo_x= 1400;
+float tempo_x= 1200;
 float tempo_y= 1400;
 
 struct pos {
@@ -110,10 +111,6 @@ uint8_t Orientation = 1;
 
 //***********************Escrita no  Display**********************************//
 
-void limpa_tela(){
-    tft.fillScreen(BLACK);
-}
-
 void pipetando_tela(pos posicao, int i){
     tft.setCursor(10, 0); // Orientação X,Y
     tft.printf("Posicao %d",i);
@@ -122,134 +119,12 @@ void pipetando_tela(pos posicao, int i){
     tft.printf("Faltam %d ml",posicao.vol);
 }
 
-void pipetagem_concluida_tela(){
-    tft.fillScreen(BLACK);
-    tft.setCursor(50, 200); // Orientação X,Y
-    tft.setTextSize(2);
-    tft.printf("PIPETAGEM CONCLUIDA");
-    tft.setTextSize(3);
-}
-
-void print_posicao(){
-
-    tft.fillScreen(BLACK);
-    tft.setCursor(0, 0); // Orientação X,Y
-    tft.print(pos_y);
-    tft.println(" passos");
-    tft.print(pos_y*3/200);
-    tft.print(" mm");
-}
-
-void pega_volume_tela(){
-
-    tft.fillScreen(BLACK);
-    tft.setCursor(10, 10); // Orientação X,Y
-    tft.printf("y = %d mm",pos_y*3/200);
-    tft.setCursor(10, 40); // Orientação X,Y
-    tft.printf("x = %d mm",pos_x*3/200);
-    tft.setCursor(10, 70);
-    tft.printf("%d ml",volume);
-}
-
-void inicio_tela(){
-
-    tft.fillScreen(BLACK);
-    tft.setTextColor(CYAN);
-    tft.setCursor(10, 10);
-    tft.print("Referenciar");
-    tft.setCursor(10, 50);
-    if(REF==0){tft.setTextColor(RED);}
-    tft.print("Pegar posicao");
-    tft.setCursor(10, 90);
-    if(PIP==0){tft.setTextColor(RED);}
-    tft.print("Pipetar");
-
-    switch (cursor){
-        case 1:
-            tft.drawRoundRect(5,5,250,30,1,WHITE);
-            break;
-        case 2:
-            tft.drawRoundRect(5,45,250,30,1,WHITE);
-            break;
-        case 3:
-            tft.drawRoundRect(5,85,250,30,1,WHITE);
-            break;
-    }
-}
-
-void referenciamento_tela(){
-
-    tft.fillScreen(BLACK);
-    tft.setTextColor(CYAN);
-    tft.setCursor(10, 85); // Orientação X,Y
-    tft.printf("\rPor favor\naperte confirma\npara referenciar");
-}
-
-void emergencia_tela(){
-
-    tft.fillScreen(BLACK);
-    tft.setCursor(80, 10); // Orientação X,Y
-    tft.setTextColor(RED);
-    tft.print("\rEMERGENCIA\n");
-    tft.setTextColor(CYAN);
-    tft.println("\n\nDesative o botao\nquando for seguro");
-}
-
-void lista_pos_tela(){
-
-    tft.fillScreen(BLACK);
-    tft.setTextColor(RED);
-    tft.setCursor(10, 10);
-    tft.setTextSize(2);
-    if(pos_pega.y>0){tft.setTextColor(CYAN);}
-    tft.println("Posicao pega");
-    tft.setTextColor(RED);
-    
-    
-    for (int i=1;i<10;i++){
-        
-        if(posicoes[i-1].vol>0){
-            tft.setTextColor(CYAN);
-            tft.setCursor(150, 10+i*20);
-            tft.printf("%d ml", posicoes[i-1].vol);
-        }
-        tft.setCursor(10, 10+i*20);
-        tft.printf("Posicao %d:",i);
-        tft.setTextColor(RED);
-    }
-    
-    tft.setTextSize(3);
-    tft.setTextColor(CYAN);
-    tft.drawRoundRect(5,5+20*cursor_pos,210,24,1,WHITE);
-
-}
-
 //****************************************************************************//
-
-void mov_y(){
-    if (Y_MENOS){
-        pos_y = pos_y + gira_y_menos();
-    } else if (Y_MAIS){
-        pos_y = pos_y + gira_y_mais();
-    } else {
-        stop_y();
-    }
-}
-
-void mov_x(){
-    if (X_MENOS){
-        pos_x = pos_x + gira_x_menos();
-    } else if (X_MAIS){
-        pos_x = pos_x + gira_x_mais();
-    } else {
-        stop_x();
-    }
-}
 
 // PROGRAMA PRINCIPAL ____________________________________________________________
 
-void setup(void)
-{
+void setup(void){  //roda apenas uma vez
+
     //configs da tela
     tft.reset();
     tft.begin();
@@ -386,6 +261,7 @@ void estado_ref(){
 
 void referencia(){
 
+    referenciando_tela();
 
     while((fdc2_y_==0||fdc2_x_==0) && flag_emergencia==1){ //roda até bater no fim de curso 2
         
@@ -442,6 +318,10 @@ void seleciona_posicao(){
             while (REF == 1){
 
                 if(!voltar){
+                    X_MENOS=0;
+                    X_MAIS=0;
+                    Y_MENOS=0;
+                    Y_MAIS=0;
                     lista_pos_tela();
                     delay(300);
                     break;
@@ -490,6 +370,10 @@ void seleciona_posicao(){
                 }
 
                 if(!confirma){ //confirmar posições
+                    X_MENOS=0;
+                    X_MAIS=0;
+                    Y_MENOS=0;
+                    Y_MAIS=0;
                     delay(300);
                     switch(cursor_pos){
                         case 0:
@@ -670,4 +554,143 @@ void pipetagem(){
 
     inicio_tela();
     
+}
+
+//*****************************************************************************************//
+void mov_y(){
+    if (Y_MENOS){
+        pos_y = pos_y + gira_y_menos();
+    } else if (Y_MAIS){
+        pos_y = pos_y + gira_y_mais();
+    } else {
+        stop_y();
+    }
+}
+
+void mov_x(){
+    if (X_MENOS){
+        pos_x = pos_x + gira_x_menos();
+    } else if (X_MAIS){
+        pos_x = pos_x + gira_x_mais();
+    } else {
+        stop_x();
+    }
+}
+
+
+
+// TELAS DISPLAY_____________________________________________
+
+void limpa_tela(){
+    tft.fillScreen(BLACK);
+}
+
+void pipetagem_concluida_tela(){
+    tft.fillScreen(BLACK);
+    tft.setCursor(50, 200); // Orientação X,Y
+    tft.setTextSize(2);
+    tft.printf("PIPETAGEM CONCLUIDA");
+    tft.setTextSize(3);
+}
+
+void print_posicao(){
+
+    tft.fillScreen(BLACK);
+    tft.setCursor(0, 0); // Orientação X,Y
+    tft.print(pos_y);
+    tft.println(" passos");
+    tft.print(pos_y*3/200);
+    tft.print(" mm");
+}
+
+void pega_volume_tela(){
+
+    tft.fillScreen(BLACK);
+    tft.setCursor(10, 10); // Orientação X,Y
+    tft.printf("y = %d mm",pos_y*3/200);
+    tft.setCursor(10, 40); // Orientação X,Y
+    tft.printf("x = %d mm",pos_x*3/200);
+    tft.setCursor(10, 70);
+    tft.printf("%d ml",volume);
+}
+
+void inicio_tela(){
+
+    tft.fillScreen(BLACK);
+    tft.setTextColor(CYAN);
+    tft.setCursor(10, 10);
+    tft.print("Referenciar");
+    tft.setCursor(10, 50);
+    if(REF==0){tft.setTextColor(RED);}
+    tft.print("Pegar posicao");
+    tft.setCursor(10, 90);
+    if(PIP==0){tft.setTextColor(RED);}
+    tft.print("Pipetar");
+
+    switch (cursor){
+        case 1:
+            tft.drawRoundRect(5,5,250,30,1,WHITE);
+            break;
+        case 2:
+            tft.drawRoundRect(5,45,250,30,1,WHITE);
+            break;
+        case 3:
+            tft.drawRoundRect(5,85,250,30,1,WHITE);
+            break;
+    }
+}
+
+void referenciamento_tela(){
+
+    tft.fillScreen(BLACK);
+    tft.setTextColor(CYAN);
+    tft.setCursor(10, 85); // Orientação X,Y
+    tft.printf("\rPor favor\naperte confirma\npara referenciar");
+}
+
+void referenciando_tela(){
+    tft.fillScreen(BLACK);
+    tft.setCursor(50, 200); // Orientação X,Y
+    tft.setTextSize(2);
+    tft.printf("REFERENCIANDO...");
+    tft.setTextSize(3);
+}
+
+void emergencia_tela(){
+
+    tft.fillScreen(BLACK);
+    tft.setCursor(80, 10); // Orientação X,Y
+    tft.setTextColor(RED);
+    tft.print("\rEMERGENCIA\n");
+    tft.setTextColor(CYAN);
+    tft.println("\n\nDesative o botao\nquando for seguro");
+}
+
+void lista_pos_tela(){
+
+    tft.fillScreen(BLACK);
+    tft.setTextColor(RED);
+    tft.setCursor(10, 10);
+    tft.setTextSize(2);
+    if(pos_pega.y>0){tft.setTextColor(CYAN);}
+    tft.println("Posicao pega");
+    tft.setTextColor(RED);
+    
+    
+    for (int i=1;i<10;i++){
+        
+        if(posicoes[i-1].vol>0){
+            tft.setTextColor(CYAN);
+            tft.setCursor(150, 10+i*20);
+            tft.printf("%d ml", posicoes[i-1].vol);
+        }
+        tft.setCursor(10, 10+i*20);
+        tft.printf("Posicao %d:",i);
+        tft.setTextColor(RED);
+    }
+    
+    tft.setTextSize(3);
+    tft.setTextColor(CYAN);
+    tft.drawRoundRect(5,5+20*cursor_pos,210,24,1,WHITE);
+
 }
