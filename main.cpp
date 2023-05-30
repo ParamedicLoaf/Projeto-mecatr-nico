@@ -11,10 +11,11 @@ MCUFRIEND_kbv tft;
 
 //IHM
 DigitalIn confirma(PC_6);
-//DigitalIn voltar(PB_13);
+DigitalIn cima(PC_4);
+DigitalIn baixo(PB_13);
 DigitalIn voltar(PB_7);
-AnalogIn EixoYJoyStick(PC_3);
-AnalogIn EixoXJoyStick(PC_2);
+AnalogIn EixoYJoyStick(PC_2);
+AnalogIn EixoXJoyStick(PC_3);
 InterruptIn emergencia(PC_5);
 
 // pipeta
@@ -26,6 +27,9 @@ InterruptIn fdc2_y_(PB_1);
 //Motor X
 InterruptIn fdc2_x_(PB_11);
 
+//Motor Z
+InterruptIn fdc2_z_(PB_15);
+
 // variaveis auxiliares
 bool REF = 0;
 bool flag_emergencia = 1;
@@ -36,6 +40,7 @@ int joy_y;
 int pos_y;
 int joy_x;
 int pos_x;
+int pos_z;
 
 int cursor=1;
 int cursor_pos=0;
@@ -44,24 +49,30 @@ bool Y_MAIS=0;
 bool Y_MENOS=0;
 bool X_MAIS=0;
 bool X_MENOS=0;
+bool Z_MAIS=0;
+bool Z_MENOS=0;
 
 Timer display;
 Timer debounce;
 Ticker vel_x;
 Ticker vel_y;
+Ticker vel_z;
 
 float tempo_x= 1200;
 float tempo_y= 1400;
+float tempo_z= 1200;
 
 struct pos {
   int y;
   int x;
+  int z;
   int vol;
 };
 
 struct pega {
   int y;
   int x;
+  int z;
 };
 
 
@@ -145,6 +156,7 @@ void setup(void){  //roda apenas uma vez
 
     vel_x.attach_us(mov_x,tempo_x);
     vel_y.attach_us(mov_y,tempo_y);
+    vel_z.attach_us(mov_z,tempo_z);
 
     
     inicio_tela();
@@ -159,9 +171,13 @@ void loop(){
     X_MAIS=0;
     Y_MENOS=0;
     Y_MAIS=0;
+    Z_MENOS=0;
+    Z_MAIS=0;
 
     joy_y = EixoYJoyStick.read() * 1000;
     joy_x = EixoXJoyStick.read() * 1000;
+    joy_y = 1000-joy_y;
+    joy_x = 1000-joy_x;
 
     if (joy_y<400){
         cursor++;
@@ -183,19 +199,19 @@ void loop(){
 
     }
 
-    if (!confirma){ // função selecionada
+    if (confirma){ // função selecionada
         switch(cursor){
             case 1:
                 referenciamento_tela();
                 wait(0.5);
                 while(1){
-                    if(!confirma){ //AAAAAAAAAAAAAAAAAAAA
+                    if(confirma){ //confirmando referencia
                         estado_ref();
                         delay(300);
                         inicio_tela();
                         break;
                     }
-                    if(!voltar){
+                    if(voltar){
                         delay(300);
                         inicio_tela();
                         break;
@@ -232,6 +248,8 @@ void desastre(){
         X_MAIS=0;
         Y_MENOS=0;
         Y_MAIS=0;
+        Z_MENOS=0;
+        Z_MAIS=0;
 
         REF = 0; //
         flag_emergencia = 0;
@@ -248,10 +266,11 @@ void estado_ref(){
     if (debounce.read_ms() >30 && REF==0 && emergencia==1){
         referencia();
 
-        if (fdc2_y_==1 && fdc2_x_==1){REF = 1;}
+        if (fdc2_y_==1 && fdc2_x_==1 && fdc2_z_==1){REF = 1;}
         
         pos_y = 0;
         pos_x = 0;
+        pos_z = 0;
         
         inicio_tela();
     }
@@ -262,6 +281,17 @@ void estado_ref(){
 void referencia(){
 
     referenciando_tela();
+
+    while(fdc2_z_==0 && flag_emergencia==1){ //roda até bater no fim de curso 2
+        
+        Z_MENOS=1;
+
+        if(emergencia==0){
+            break;
+        }
+
+    }
+    Z_MENOS = 0;
 
     while((fdc2_y_==0||fdc2_x_==0) && flag_emergencia==1){ //roda até bater no fim de curso 2
         
@@ -284,13 +314,14 @@ void seleciona_posicao(){
 
     while(flag_emergencia){
 
-        if(!voltar){
+        if(voltar){
             inicio_tela();
             delay(300);
             break;
         }
 
         joy_y = EixoYJoyStick.read() * 1000;
+        joy_y = 1000-joy_y;
 
         if (joy_y<400){
             cursor_pos++;
@@ -312,16 +343,18 @@ void seleciona_posicao(){
 
         }
 
-        if (!confirma){ //movimentando pos específica
+        if (confirma){ //movimentando pos específica
             delay(300);
             //JOG
             while (REF == 1){
 
-                if(!voltar){
+                if(voltar){
                     X_MENOS=0;
                     X_MAIS=0;
                     Y_MENOS=0;
                     Y_MAIS=0;
+                    Z_MENOS=0;
+                    Z_MAIS=0;
                     lista_pos_tela();
                     delay(300);
                     break;
@@ -329,6 +362,9 @@ void seleciona_posicao(){
 
                 joy_y = EixoYJoyStick.read() * 1000;
                 joy_x = EixoXJoyStick.read() * 1000;
+
+                joy_y = 1000-joy_y;
+                joy_x = 1000-joy_x;
 
                 // gira o motor Y de acordo com a leitura do Joystick
                 if (joy_y>600){
@@ -369,25 +405,46 @@ void seleciona_posicao(){
                     //stop_x();
                 }
 
-                if(!confirma){ //confirmar posições
+                // gira o motor Z de acordo com a leitura dos botoes
+                if (baixo){
+                    Z_MAIS=1;
+                    Z_MENOS=0;
+                    
+                } else if (cima){
+                    Z_MAIS=0;
+                    Z_MENOS=1;
+                    
+                } else {
+                    Z_MAIS=0;
+                    Z_MENOS=0;
+                    
+                }
+
+                if(confirma){ //confirmar posições
                     X_MENOS=0;
                     X_MAIS=0;
                     Y_MENOS=0;
                     Y_MAIS=0;
+                    Z_MENOS=0;
+                    Z_MAIS=0;
+
                     delay(300);
                     switch(cursor_pos){
                         case 0:
                             pos_pega.y = pos_y;
                             pos_pega.x = pos_x;
+                            pos_pega.z = pos_z;
                             break;
                         default:
                             posicoes[cursor_pos-1].y=pos_y;
                             posicoes[cursor_pos-1].x=pos_x;
+                            posicoes[cursor_pos-1].z=pos_z;
 
                             pega_volume_tela();
                             while(flag_emergencia){
 
                                 joy_y = EixoYJoyStick.read() * 1000;
+                                joy_y = 1000-joy_y;
                                 
                                 if (joy_y>600){
             
@@ -406,13 +463,13 @@ void seleciona_posicao(){
 
                                 }
 
-                                if (!confirma){ 
+                                if (confirma){ 
                                     delay(300);
                                     posicoes[cursor_pos-1].vol=volume;
                                     if(pos_pega.y>0){PIP = 1;}
                                     break;
                                 }
-                                if(!voltar){
+                                if(voltar){
                                     lista_pos_tela();
                                     delay(300);
                                     break;
@@ -434,7 +491,6 @@ void seleciona_posicao(){
 void pipetagem(){
 
     limpa_tela();
-    //pipetando_tela(posicoes[0],1);
 
     for (int i=0;i<9;i++){
 
@@ -444,6 +500,24 @@ void pipetagem(){
 
         while(posicoes[i].vol>0 && flag_emergencia){
             if (pipeta_cheia==0){
+                
+                while(REF && flag_emergencia){
+                    // Movimenta z até a posição mais alta
+                    if(pos_z<0){
+                        Z_MAIS=1;
+                        Z_MENOS=0; 
+                    } else if(pos_z>0) {
+                        Z_MAIS=0;
+                        Z_MENOS=1;
+                    } else {
+                        Z_MAIS=0;
+                        Z_MENOS=0;
+                    }
+
+                    if(pos_z==0){
+                        break;
+                    }
+                }
 
                 while(REF && flag_emergencia){
 
@@ -451,11 +525,11 @@ void pipetagem(){
                     if(pos_y<pos_pega.y){
                         Y_MAIS=1;
                         Y_MENOS=0;
-                        //pos_y = pos_y +gira_y_mais();
+                        
                     } else if(pos_y>pos_pega.y) {
                         Y_MAIS=0;
                         Y_MENOS=1;
-                        //pos_y = pos_y +gira_y_menos();
+                        
                     } else {
                         Y_MAIS=0;
                         Y_MENOS=0;
@@ -465,17 +539,36 @@ void pipetagem(){
                     if(pos_x<pos_pega.x){
                         X_MAIS=1;
                         X_MENOS=0;
-                        //pos_x = pos_x +gira_x_mais();
+                        
                     } else if(pos_x>pos_pega.x) {
                         X_MAIS=0;
                         X_MENOS=1;
-                        //pos_x = pos_x +gira_x_menos();
+                        
                     } else {
                         X_MAIS=0;
                         X_MENOS=0;
                     }
 
                     if(pos_x==pos_pega.x && pos_y==pos_pega.y){
+                        while(REF && flag_emergencia){
+                            // Movimenta z até a posição de pega
+                            if(pos_z<pos_pega.z){
+                                Z_MAIS=1;
+                                Z_MENOS=0;
+                                
+                            } else if(pos_z>pos_pega.z) {
+                                Z_MAIS=0;
+                                Z_MENOS=1;
+                                
+                            } else {
+                                Z_MAIS=0;
+                                Z_MENOS=0;
+                            }
+
+                            if(pos_z==pos_pega.z){
+                                break;
+                            }
+                        }
                         pipeta = 0;
                         delay(300);
                         pipeta = 1;
@@ -490,6 +583,24 @@ void pipetagem(){
 
                 }
             } else {
+
+                while(REF && flag_emergencia){
+                    // Movimenta z até a posição mais alta
+                    if(pos_z<0){
+                        Z_MAIS=1;
+                        Z_MENOS=0; 
+                    } else if(pos_z>0) {
+                        Z_MAIS=0;
+                        Z_MENOS=1;
+                    } else {
+                        Z_MAIS=0;
+                        Z_MENOS=0;
+                    }
+
+                    if(pos_z==0){
+                        break;
+                    }
+                }
 
                 while(REF && flag_emergencia){
 
@@ -522,6 +633,24 @@ void pipetagem(){
                     }
 
                     if (pos_y==posicoes[i].y && pos_x==posicoes[i].x) {
+                        while(REF && flag_emergencia){
+                            // Movimenta z até a posição salva
+                            if(pos_z<posicoes[i].z){
+                                Z_MAIS=1;
+                                Z_MENOS=0; 
+                            } else if(pos_z>posicoes[i].z){
+                                Z_MAIS=0;
+                                Z_MENOS=1;
+                            } else {
+                                Z_MAIS=0;
+                                Z_MENOS=0;
+                            }
+
+                            if(pos_z==posicoes[i].z){
+                                break;
+                            }
+                        }
+
                         pipeta = 0;
                         delay(300);
                         pipeta = 1;
@@ -577,7 +706,15 @@ void mov_x(){
     }
 }
 
-
+void mov_z(){
+    if (Z_MENOS){
+        pos_z = pos_z + gira_z_menos();
+    } else if (Z_MAIS){
+        pos_z = pos_z + gira_z_mais();
+    } else {
+        stop_z();
+    }
+}
 
 // TELAS DISPLAY_____________________________________________
 
@@ -596,21 +733,26 @@ void pipetagem_concluida_tela(){
 void print_posicao(){
 
     tft.fillScreen(BLACK);
-    tft.setCursor(0, 0); // Orientação X,Y
-    tft.print(pos_y);
-    tft.println(" passos");
-    tft.print(pos_y*3/200);
-    tft.print(" mm");
+    tft.setCursor(10, 10); // Orientação X,Y
+    tft.printf("x = %d mm",pos_x*3/200);
+    tft.setCursor(10, 40); 
+    tft.printf("y = %d mm",pos_y*3/200);
+    tft.setCursor(10, 70);
+    tft.printf("z = %d mm",pos_z*3/200);
+    tft.setCursor(10, 110);
+
 }
 
 void pega_volume_tela(){
 
     tft.fillScreen(BLACK);
     tft.setCursor(10, 10); // Orientação X,Y
-    tft.printf("y = %d mm",pos_y*3/200);
-    tft.setCursor(10, 40); // Orientação X,Y
     tft.printf("x = %d mm",pos_x*3/200);
+    tft.setCursor(10, 40); // Orientação X,Y
+    tft.printf("y = %d mm",pos_y*3/200);
     tft.setCursor(10, 70);
+    tft.printf("z = %d mm",pos_z*3/200);
+    tft.setCursor(10, 110);
     tft.printf("%d ml",volume);
 }
 
@@ -645,7 +787,11 @@ void referenciamento_tela(){
     tft.fillScreen(BLACK);
     tft.setTextColor(CYAN);
     tft.setCursor(10, 85); // Orientação X,Y
-    tft.printf("\rPor favor\naperte confirma\npara referenciar");
+    tft.printf("\rPor favor\naperte");
+    tft.setTextColor(GREEN);
+    tft.printf("confirma\n");
+    tft.setTextColor(CYAN);
+    tft.printf("para referenciar");
 }
 
 void referenciando_tela(){

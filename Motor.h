@@ -11,5 +11,9 @@ int gira_x_mais();
 int gira_x_menos();
 void stop_x();
 
+int gira_z_mais();
+int gira_z_menos();
+void stop_z();
+
 
 #endif

@@ -12,6 +12,7 @@ void seleciona_posicao();
 
 void mov_x();
 void mov_y();
+void mov_z();
 
 // TELAS_____________________________________
 void limpa_tela();
