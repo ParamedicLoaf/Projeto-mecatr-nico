@@ -113,7 +113,7 @@ int gira_z_mais(){
 
     if (fdc1_z == 0){ //só roda se o fim de curso não estiver acionado
         
-        direcao_z = 0;
+        direcao_z = 1;
         clk_z =1;
         clk_z = 0;
         
@@ -129,7 +129,7 @@ int gira_z_menos(){
 
     if (fdc2_z == 0){ //só roda se o fim de curso não estiver acionado
 
-        direcao_z = 1;
+        direcao_z = 0;
         clk_z =1;
         clk_z = 0;
         

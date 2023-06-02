@@ -11,8 +11,8 @@ MCUFRIEND_kbv tft;
 
 //IHM
 DigitalIn confirma(PC_6);
-DigitalIn cima(PC_4);
-DigitalIn baixo(PB_13);
+DigitalIn baixo(PC_4);
+DigitalIn cima(PB_13);
 DigitalIn voltar(PB_7);
 AnalogIn EixoYJoyStick(PC_2);
 AnalogIn EixoXJoyStick(PC_3);
@@ -60,7 +60,7 @@ Ticker vel_z;
 
 float tempo_x= 1200;
 float tempo_y= 1400;
-float tempo_z= 1200;
+float tempo_z= 2000;
 
 struct pos {
   int y;
@@ -179,7 +179,7 @@ void loop(){
     joy_y = 1000-joy_y;
     joy_x = 1000-joy_x;
 
-    if (joy_y<400){
+    if (joy_y<400 || cima){
         cursor++;
         if (cursor>3){
             cursor = 1;
@@ -188,7 +188,7 @@ void loop(){
 
         delay(300);
 
-    } else if (joy_y>600){
+    } else if (joy_y>600 || baixo){
         cursor--;
         if(cursor<1){
             cursor=3;
@@ -503,10 +503,10 @@ void pipetagem(){
                 
                 while(REF && flag_emergencia){
                     // Movimenta z até a posição mais alta
-                    if(pos_z<0){
+                    if(pos_z<10){
                         Z_MAIS=1;
                         Z_MENOS=0; 
-                    } else if(pos_z>0) {
+                    } else if(pos_z>10) {
                         Z_MAIS=0;
                         Z_MENOS=1;
                     } else {
@@ -514,7 +514,9 @@ void pipetagem(){
                         Z_MENOS=0;
                     }
 
-                    if(pos_z==0){
+                    if(pos_z==10 || emergencia==0 || flag_emergencia==0){
+                        Z_MAIS=0;
+                        Z_MENOS=0;
                         break;
                     }
                 }
@@ -565,7 +567,9 @@ void pipetagem(){
                                 Z_MENOS=0;
                             }
 
-                            if(pos_z==pos_pega.z){
+                            if(pos_z==pos_pega.z || emergencia==0 || flag_emergencia==0){
+                                Z_MAIS=0;
+                                Z_MENOS=0;
                                 break;
                             }
                         }
@@ -577,7 +581,7 @@ void pipetagem(){
                         break;
                     }
 
-                    if(emergencia==0){
+                    if(emergencia==0 || flag_emergencia==0){
                         break;
                     }
 
@@ -586,10 +590,10 @@ void pipetagem(){
 
                 while(REF && flag_emergencia){
                     // Movimenta z até a posição mais alta
-                    if(pos_z<0){
+                    if(pos_z<10){
                         Z_MAIS=1;
                         Z_MENOS=0; 
-                    } else if(pos_z>0) {
+                    } else if(pos_z>10) {
                         Z_MAIS=0;
                         Z_MENOS=1;
                     } else {
@@ -597,7 +601,9 @@ void pipetagem(){
                         Z_MENOS=0;
                     }
 
-                    if(pos_z==0){
+                    if(pos_z==10 || emergencia==0 || flag_emergencia==0){
+                        Z_MAIS=0;
+                        Z_MENOS=0;
                         break;
                     }
                 }
@@ -646,7 +652,9 @@ void pipetagem(){
                                 Z_MENOS=0;
                             }
 
-                            if(pos_z==posicoes[i].z){
+                            if(pos_z==posicoes[i].z || emergencia==0 || flag_emergencia==0){
+                                Z_MAIS=0;
+                                Z_MENOS=0;
                                 break;
                             }
                         }
@@ -661,7 +669,7 @@ void pipetagem(){
                         break;
                     }
                     
-                    if(emergencia==0){
+                    if(emergencia==0 || flag_emergencia==0){
                         break;
                     }
                 }
@@ -789,7 +797,7 @@ void referenciamento_tela(){
     tft.setCursor(10, 85); // Orientação X,Y
     tft.printf("\rPor favor\naperte");
     tft.setTextColor(GREEN);
-    tft.printf("confirma\n");
+    tft.printf(" confirma \n");
     tft.setTextColor(CYAN);
     tft.printf("para referenciar");
 }
@@ -838,5 +846,4 @@ void lista_pos_tela(){
     tft.setTextSize(3);
     tft.setTextColor(CYAN);
     tft.drawRoundRect(5,5+20*cursor_pos,210,24,1,WHITE);
-
 }
