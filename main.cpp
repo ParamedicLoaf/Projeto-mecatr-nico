@@ -89,6 +89,8 @@ pos posicao_9;
 pega pos_pega;
 
 pos posicoes[9] = {posicao_1,posicao_2,posicao_3,posicao_4,posicao_5,posicao_6,posicao_7,posicao_8,posicao_9};
+pos posicoes_backup[9];
+
 
 int volume;
 
@@ -179,7 +181,7 @@ void loop(){
     joy_y = 1000-joy_y;
     joy_x = 1000-joy_x;
 
-    if (joy_y<400 || cima){
+    if (joy_y<400 || baixo){
         cursor++;
         if (cursor>3){
             cursor = 1;
@@ -188,7 +190,7 @@ void loop(){
 
         delay(300);
 
-    } else if (joy_y>600 || baixo){
+    } else if (joy_y>600 || cima){
         cursor--;
         if(cursor<1){
             cursor=3;
@@ -323,7 +325,7 @@ void seleciona_posicao(){
         joy_y = EixoYJoyStick.read() * 1000;
         joy_y = 1000-joy_y;
 
-        if (joy_y<400){
+        if (joy_y<400  || baixo){
             cursor_pos++;
             if (cursor_pos>9){
                 cursor_pos = 0;
@@ -332,7 +334,7 @@ void seleciona_posicao(){
 
             delay(300);
 
-        } else if (joy_y>600){
+        } else if (joy_y>600  || cima){
             cursor_pos--;
             if(cursor_pos<0){
                 cursor_pos=9;
@@ -446,13 +448,13 @@ void seleciona_posicao(){
                                 joy_y = EixoYJoyStick.read() * 1000;
                                 joy_y = 1000-joy_y;
                                 
-                                if (joy_y>600){
+                                if (joy_y>600  || cima){
             
                                     volume++;
                                     pega_volume_tela();
                                     delay(300);
 
-                                } else if (joy_y<400){
+                                } else if (joy_y<400  || baixo){
 
                                     volume--;
                                     if(volume<0){
@@ -499,7 +501,7 @@ void pipetagem(){
         pipetando_tela(posicoes[i],i+1);
 
         while(posicoes[i].vol>0 && flag_emergencia){
-            if (pipeta_cheia==0){
+            if (pipeta_cheia==0 && flag_emergencia){
                 
                 while(REF && flag_emergencia){
                     // Movimenta z até a posição mais alta
@@ -573,12 +575,15 @@ void pipetagem(){
                                 break;
                             }
                         }
-                        pipeta = 0;
-                        delay(300);
-                        pipeta = 1;
-                        pipeta_cheia = 1;
-                        wait(1.6);
-                        break;
+
+                        if (flag_emergencia){
+                            pipeta = 0;
+                            delay(100);
+                            pipeta = 1;
+                            pipeta_cheia = 1;
+                            wait(1.6);
+                            break;
+                        }
                     }
 
                     if(emergencia==0 || flag_emergencia==0){
@@ -611,14 +616,14 @@ void pipetagem(){
                 while(REF && flag_emergencia){
 
                     // Movimenta y até a posição salva
-                    if(pos_y<posicoes[i].y){
+                    if(pos_y<posicoes[i].y && flag_emergencia){
                         Y_MAIS=1;
                         Y_MENOS=0;
-                        //pos_y = pos_y +gira_y_mais();
-                    } else if(pos_y>posicoes[i].y) {
+                        
+                    } else if(pos_y>posicoes[i].y && flag_emergencia) {
                         Y_MAIS=0;
                         Y_MENOS=1;
-                        //pos_y = pos_y +gira_y_menos();
+                        
                     } else {
                         Y_MAIS=0;
                         Y_MENOS=0;
@@ -659,14 +664,16 @@ void pipetagem(){
                             }
                         }
 
-                        pipeta = 0;
-                        delay(300);
-                        pipeta = 1;
-                        pipeta_cheia = 0;
-                        posicoes[i].vol = posicoes[i].vol--;
-                        pipetando_tela(posicoes[i],i+1);
-                        wait(2.3);
-                        break;
+                        if (flag_emergencia){
+                            pipeta = 0;
+                            delay(100);
+                            pipeta = 1;
+                            pipeta_cheia = 0;
+                            posicoes[i].vol = posicoes[i].vol--;
+                            pipetando_tela(posicoes[i],i+1);
+                            wait(2.3);
+                            break;
+                        }
                     }
                     
                     if(emergencia==0 || flag_emergencia==0){
@@ -695,9 +702,9 @@ void pipetagem(){
 
 //*****************************************************************************************//
 void mov_y(){
-    if (Y_MENOS){
+    if (Y_MENOS && flag_emergencia){
         pos_y = pos_y + gira_y_menos();
-    } else if (Y_MAIS){
+    } else if (Y_MAIS && flag_emergencia){
         pos_y = pos_y + gira_y_mais();
     } else {
         stop_y();
@@ -705,9 +712,9 @@ void mov_y(){
 }
 
 void mov_x(){
-    if (X_MENOS){
+    if (X_MENOS && flag_emergencia){
         pos_x = pos_x + gira_x_menos();
-    } else if (X_MAIS){
+    } else if (X_MAIS && flag_emergencia){
         pos_x = pos_x + gira_x_mais();
     } else {
         stop_x();
@@ -715,9 +722,9 @@ void mov_x(){
 }
 
 void mov_z(){
-    if (Z_MENOS){
+    if (Z_MENOS && flag_emergencia){
         pos_z = pos_z + gira_z_menos();
-    } else if (Z_MAIS){
+    } else if (Z_MAIS && flag_emergencia){
         pos_z = pos_z + gira_z_mais();
     } else {
         stop_z();
@@ -746,7 +753,7 @@ void print_posicao(){
     tft.setCursor(10, 40); 
     tft.printf("y = %d mm",pos_y*3/200);
     tft.setCursor(10, 70);
-    tft.printf("z = %d mm",pos_z*3/200);
+    tft.printf("z = %d mm",pos_z*5/200);
     tft.setCursor(10, 110);
 
 }
