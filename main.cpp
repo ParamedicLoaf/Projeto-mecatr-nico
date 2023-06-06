@@ -724,7 +724,7 @@ void mov_x(){
 void mov_z(){
     if (Z_MENOS && flag_emergencia){
         pos_z = pos_z + gira_z_menos();
-    } else if (Z_MAIS && flag_emergencia){
+    } else if (Z_MAIS && flag_emergencia && pos_z*5/200<=101){
         pos_z = pos_z + gira_z_mais();
     } else {
         stop_z();
@@ -769,6 +769,10 @@ void pega_volume_tela(){
     tft.printf("z = %d mm",pos_z*3/200);
     tft.setCursor(10, 110);
     tft.printf("%d ml",volume);
+    tft.setCursor(10, 160);
+    tft.setTextSize(2);
+    tft.print("Selecione o volume");
+    tft.setTextSize(3);
 }
 
 void inicio_tela(){
@@ -833,7 +837,7 @@ void lista_pos_tela(){
     tft.setTextColor(RED);
     tft.setCursor(10, 10);
     tft.setTextSize(2);
-    if(pos_pega.y>0){tft.setTextColor(CYAN);}
+    if(pos_pega.z>0){tft.setTextColor(CYAN);}
     tft.println("Posicao pega");
     tft.setTextColor(RED);
     
@@ -850,7 +854,22 @@ void lista_pos_tela(){
         tft.setTextColor(RED);
     }
     
-    tft.setTextSize(3);
+    tft.setCursor(220, 90);
+    tft.setTextSize(1);
     tft.setTextColor(CYAN);
+    if (PIP == 0){
+        tft.print("Preencha a");
+        tft.setCursor(220, 110);
+        tft.print("posicao pega");
+        tft.setCursor(220, 130);
+        tft.print("e 1 volume");
+    } else {
+        tft.print("Pressione");
+        tft.setCursor(220, 110);
+        tft.print("voltar");
+        tft.setCursor(220, 130);
+        tft.print("para pipetar");
+    }
+    tft.setTextSize(3);
     tft.drawRoundRect(5,5+20*cursor_pos,210,24,1,WHITE);
 }
