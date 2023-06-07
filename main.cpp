@@ -89,7 +89,7 @@ pos posicao_9;
 pega pos_pega;
 
 pos posicoes[9] = {posicao_1,posicao_2,posicao_3,posicao_4,posicao_5,posicao_6,posicao_7,posicao_8,posicao_9};
-pos posicoes_backup[9];
+pos posicoes_backup[9] = {posicao_1,posicao_2,posicao_3,posicao_4,posicao_5,posicao_6,posicao_7,posicao_8,posicao_9};
 
 
 int volume;
@@ -318,6 +318,9 @@ void seleciona_posicao(){
 
         if(voltar){
             inicio_tela();
+            for (int i=0;i<9;i++){
+                posicoes_backup[i] = posicoes[i];
+            }
             delay(300);
             break;
         }
@@ -693,6 +696,14 @@ void pipetagem(){
     
     if(PIP==0){
         pipetagem_concluida_tela();
+        for (int i=0;i<9;i++){
+            posicoes[i] = posicoes_backup[i];
+        }
+        for (int i=0;i<9;i++){
+        if(posicoes[i].vol>0){
+            PIP=1;
+        }
+    }
         wait(3);
     }
 
