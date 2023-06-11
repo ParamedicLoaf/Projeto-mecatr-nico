@@ -35,16 +35,18 @@ bool REF = 0;
 bool flag_emergencia = 1;
 bool PIP = 0;
 bool pipeta_cheia = 0;
+int cursor=1;
+int cursor_pos=0;
+int volume;
 
+//variáveis de posição e joystick
 int joy_y;
 int pos_y;
 int joy_x;
 int pos_x;
 int pos_z;
 
-int cursor=1;
-int cursor_pos=0;
-
+// variaveis de movimentação
 bool Y_MAIS=0;
 bool Y_MENOS=0;
 bool X_MAIS=0;
@@ -52,16 +54,17 @@ bool X_MENOS=0;
 bool Z_MAIS=0;
 bool Z_MENOS=0;
 
+// Temporizadores
 Timer display;
 Timer debounce;
 Ticker vel_x;
 Ticker vel_y;
 Ticker vel_z;
-
 float tempo_x= 1200;
 float tempo_y= 1400;
 float tempo_z= 2000;
 
+//Estrutura de dados para captura de posição e volume
 struct pos {
   int y;
   int x;
@@ -74,7 +77,6 @@ struct pega {
   int x;
   int z;
 };
-
 
 pos posicao_1;
 pos posicao_2;
@@ -92,7 +94,6 @@ pos posicoes[9] = {posicao_1,posicao_2,posicao_3,posicao_4,posicao_5,posicao_6,p
 pos posicoes_backup[9] = {posicao_1,posicao_2,posicao_3,posicao_4,posicao_5,posicao_6,posicao_7,posicao_8,posicao_9};
 
 
-int volume;
 
 // Configuração do Display
 const PinName XP = D8, YP = A3, XM = A2, YM = D9; 
@@ -147,7 +148,7 @@ void setup(void){  //roda apenas uma vez
     tft.setTextSize(3);
     delay(1000);
 
-    pipeta = 1;
+    pipeta = 1; //abre o relay
 
     //inicia o debouncing
     debounce.start();
@@ -156,6 +157,7 @@ void setup(void){  //roda apenas uma vez
     //interrupções
     emergencia.fall(&desastre);
 
+    //associa as movimentações com as velocidades
     vel_x.attach_us(mov_x,tempo_x);
     vel_y.attach_us(mov_y,tempo_y);
     vel_z.attach_us(mov_z,tempo_z);
@@ -167,8 +169,10 @@ void setup(void){  //roda apenas uma vez
 
 void loop(){
 
+    // normaliza a flag emergencia
     flag_emergencia = 1;
 
+    // Para os motores
     X_MENOS=0;
     X_MAIS=0;
     Y_MENOS=0;
@@ -176,11 +180,13 @@ void loop(){
     Z_MENOS=0;
     Z_MAIS=0;
 
+    // Lê o joystick 
     joy_y = EixoYJoyStick.read() * 1000;
     joy_x = EixoXJoyStick.read() * 1000;
     joy_y = 1000-joy_y;
     joy_x = 1000-joy_x;
 
+    //controle de cursores
     if (joy_y<400 || baixo){
         cursor++;
         if (cursor>3){
@@ -202,7 +208,9 @@ void loop(){
     }
 
     if (confirma){ // função selecionada
+
         switch(cursor){
+//______________REFERENCIAMENTO_____________________________________________________________________
             case 1:
                 referenciamento_tela();
                 wait(0.5);
@@ -223,14 +231,14 @@ void loop(){
 
 //______________JOG_________________________________________________________________________________
             case 2:
-                if(REF){
+                if(REF){ 
                     seleciona_posicao();
                 }
                 
                 break;
 
 //________PIPETAGEM________________________________________________________________________________
-            case 3:
+            case 3: 
                 if(PIP && REF){
                     pipetagem();
                 }
@@ -244,8 +252,8 @@ void loop(){
 
 //***********************Funções gerais**********************************//
 
-void desastre(){
-    
+void desastre(){ //quando o emergência é acionado
+        //para os motores
         X_MENOS=0;
         X_MAIS=0;
         Y_MENOS=0;
@@ -253,23 +261,22 @@ void desastre(){
         Z_MENOS=0;
         Z_MAIS=0;
 
-        REF = 0; //
-        flag_emergencia = 0;
-        emergencia_tela();
-        while (emergencia == 0){ //enquanto etiver apertado
-
-        }
+        REF = 0; //perde a referencia
+        flag_emergencia = 0; //aciona a flag emergencia
+        emergencia_tela(); 
+        while (emergencia == 0){} //enquanto etiver apertado nada acontecee
 
         inicio_tela();
 
 }
 
-void estado_ref(){
-    if (debounce.read_ms() >30 && REF==0 && emergencia==1){
-        referencia();
+void estado_ref(){ //para referenciar
+    if (debounce.read_ms() >30 && REF==0 && emergencia==1){ //debouncing
+        referencia(); //função de referencia
 
-        if (fdc2_y_==1 && fdc2_x_==1 && fdc2_z_==1){REF = 1;}
+        if (fdc2_y_==1 && fdc2_x_==1 && fdc2_z_==1){REF = 1;} //se a função for concluida, REF =1
         
+        // zera as posições
         pos_y = 0;
         pos_x = 0;
         pos_z = 0;
@@ -284,6 +291,7 @@ void referencia(){
 
     referenciando_tela();
 
+    //referenciamento de Z
     while(fdc2_z_==0 && flag_emergencia==1){ //roda até bater no fim de curso 2
         
         Z_MENOS=1;
@@ -295,6 +303,7 @@ void referencia(){
     }
     Z_MENOS = 0;
 
+    //referenciamento de X e Y
     while((fdc2_y_==0||fdc2_x_==0) && flag_emergencia==1){ //roda até bater no fim de curso 2
         
         Y_MENOS=1;
@@ -315,7 +324,8 @@ void seleciona_posicao(){
     delay(300);
 
     while(flag_emergencia){
-
+        
+        //Menu de posições
         if(voltar){
             inicio_tela();
             for (int i=0;i<9;i++){
@@ -399,15 +409,15 @@ void seleciona_posicao(){
                 if (joy_x>600){
                     X_MAIS=1;
                     X_MENOS=0;
-                    //pos_x = pos_x + gira_x_mais();
+        
                 } else if (joy_x<400){
                     X_MAIS=0;
                     X_MENOS=1;
-                    //pos_x = pos_x + gira_x_menos();
+                    
                 } else {
                     X_MAIS=0;
                     X_MENOS=0;
-                    //stop_x();
+                    
                 }
 
                 // gira o motor Z de acordo com a leitura dos botoes
@@ -435,18 +445,18 @@ void seleciona_posicao(){
 
                     delay(300);
                     switch(cursor_pos){
-                        case 0:
+                        case 0: //caso seja posição pega
                             pos_pega.y = pos_y;
                             pos_pega.x = pos_x;
                             pos_pega.z = pos_z;
                             break;
-                        default:
+                        default: //caso seja uma posição normal
                             posicoes[cursor_pos-1].y=pos_y;
                             posicoes[cursor_pos-1].x=pos_x;
                             posicoes[cursor_pos-1].z=pos_z;
 
                             pega_volume_tela();
-                            while(flag_emergencia){
+                            while(flag_emergencia){ //pega o volume
 
                                 joy_y = EixoYJoyStick.read() * 1000;
                                 joy_y = 1000-joy_y;
@@ -471,7 +481,7 @@ void seleciona_posicao(){
                                 if (confirma){ 
                                     delay(300);
                                     posicoes[cursor_pos-1].vol=volume;
-                                    if(pos_pega.y>0){PIP = 1;}
+                                    if(pos_pega.z>0){PIP = 1;}
                                     break;
                                 }
                                 if(voltar){
@@ -497,14 +507,16 @@ void pipetagem(){
 
     limpa_tela();
 
-    for (int i=0;i<9;i++){
+    for (int i=0;i<9;i++){ //percorre todas as posições
 
         limpa_tela();
 
         pipetando_tela(posicoes[i],i+1);
 
-        while(posicoes[i].vol>0 && flag_emergencia){
-            if (pipeta_cheia==0 && flag_emergencia){
+        while(posicoes[i].vol>0 && flag_emergencia){ 
+
+            //se a pipeta estiver vazia, vai até posição pega
+            if (pipeta_cheia==0 && flag_emergencia){ 
                 
                 while(REF && flag_emergencia){
                     // Movimenta z até a posição mais alta
@@ -556,6 +568,7 @@ void pipetagem(){
                         X_MENOS=0;
                     }
 
+                    // se X e Y estiverem na posição certa, movimentar Z
                     if(pos_x==pos_pega.x && pos_y==pos_pega.y){
                         while(REF && flag_emergencia){
                             // Movimenta z até a posição de pega
@@ -580,6 +593,8 @@ void pipetagem(){
                         }
 
                         if (flag_emergencia){
+
+                            //aciona a pipeta e pega o líquido
                             pipeta = 0;
                             delay(100);
                             pipeta = 1;
@@ -595,6 +610,8 @@ void pipetagem(){
 
                 }
             } else {
+
+                // caso a pipeta esteja cheia, movimenta até a posição atual
 
                 while(REF && flag_emergencia){
                     // Movimenta z até a posição mais alta
@@ -646,6 +663,7 @@ void pipetagem(){
                         X_MENOS=0;
                     }
 
+                    //Se X e Y estiverem na posição certa, movimenta Z
                     if (pos_y==posicoes[i].y && pos_x==posicoes[i].x) {
                         while(REF && flag_emergencia){
                             // Movimenta z até a posição salva
@@ -668,6 +686,8 @@ void pipetagem(){
                         }
 
                         if (flag_emergencia){
+
+                            //aciona a pipeta e solta o líquido
                             pipeta = 0;
                             delay(100);
                             pipeta = 1;
@@ -688,22 +708,22 @@ void pipetagem(){
     }
 
     PIP = 0;
-    for (int i=0;i<9;i++){
+    for (int i=0;i<9;i++){ //checa se falta algum volume
         if(posicoes[i].vol>0){
             PIP=1;
         }
     }
     
-    if(PIP==0){
+    if(PIP==0){ // se não sobrar nenhum volume, mostrar tela concluida
         pipetagem_concluida_tela();
         for (int i=0;i<9;i++){
             posicoes[i] = posicoes_backup[i];
         }
         for (int i=0;i<9;i++){
-        if(posicoes[i].vol>0){
-            PIP=1;
+            if(posicoes[i].vol>0){
+                PIP=1;
+            }
         }
-    }
         wait(3);
     }
 
@@ -712,7 +732,7 @@ void pipetagem(){
 }
 
 //*****************************************************************************************//
-void mov_y(){
+void mov_y(){ //movimentação de Y
     if (Y_MENOS && flag_emergencia){
         pos_y = pos_y + gira_y_menos();
     } else if (Y_MAIS && flag_emergencia){
@@ -722,7 +742,7 @@ void mov_y(){
     }
 }
 
-void mov_x(){
+void mov_x(){ //movimentação de X
     if (X_MENOS && flag_emergencia){
         pos_x = pos_x + gira_x_menos();
     } else if (X_MAIS && flag_emergencia){
@@ -732,7 +752,7 @@ void mov_x(){
     }
 }
 
-void mov_z(){
+void mov_z(){ //movimentação de Z
     if (Z_MENOS && flag_emergencia){
         pos_z = pos_z + gira_z_menos();
     } else if (Z_MAIS && flag_emergencia && pos_z*5/200<=101){
@@ -742,13 +762,13 @@ void mov_z(){
     }
 }
 
-// TELAS DISPLAY_____________________________________________
+// TELAS DISPLAY__________________________________________________________________________________
 
 void limpa_tela(){
     tft.fillScreen(BLACK);
 }
 
-void pipetagem_concluida_tela(){
+void pipetagem_concluida_tela(){ //tela de conclusão
     tft.fillScreen(BLACK);
     tft.setCursor(50, 200); // Orientação X,Y
     tft.setTextSize(2);
@@ -756,7 +776,7 @@ void pipetagem_concluida_tela(){
     tft.setTextSize(3);
 }
 
-void print_posicao(){
+void print_posicao(){ //indica posição atual durante jog
 
     tft.fillScreen(BLACK);
     tft.setCursor(10, 10); // Orientação X,Y
@@ -769,7 +789,7 @@ void print_posicao(){
 
 }
 
-void pega_volume_tela(){
+void pega_volume_tela(){ //tela que pede o volume a ser pipetado
 
     tft.fillScreen(BLACK);
     tft.setCursor(10, 10); // Orientação X,Y
@@ -786,7 +806,7 @@ void pega_volume_tela(){
     tft.setTextSize(3);
 }
 
-void inicio_tela(){
+void inicio_tela(){ // menu de início, com 3 opções
 
     tft.fillScreen(BLACK);
     tft.setTextColor(CYAN);
@@ -812,7 +832,7 @@ void inicio_tela(){
     }
 }
 
-void referenciamento_tela(){
+void referenciamento_tela(){ //tela antes do referenciamento
 
     tft.fillScreen(BLACK);
     tft.setTextColor(CYAN);
@@ -824,7 +844,7 @@ void referenciamento_tela(){
     tft.printf("para referenciar");
 }
 
-void referenciando_tela(){
+void referenciando_tela(){ //tela durante o referenciamento
     tft.fillScreen(BLACK);
     tft.setCursor(50, 200); // Orientação X,Y
     tft.setTextSize(2);
@@ -832,7 +852,7 @@ void referenciando_tela(){
     tft.setTextSize(3);
 }
 
-void emergencia_tela(){
+void emergencia_tela(){ //tela durante o emergência
 
     tft.fillScreen(BLACK);
     tft.setCursor(80, 10); // Orientação X,Y
@@ -842,7 +862,7 @@ void emergencia_tela(){
     tft.println("\n\nDesative o botao\nquando for seguro");
 }
 
-void lista_pos_tela(){
+void lista_pos_tela(){ //menu com a posição pega + 9 posições
 
     tft.fillScreen(BLACK);
     tft.setTextColor(RED);
